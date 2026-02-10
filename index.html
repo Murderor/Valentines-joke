@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Любимой</title>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Pacifico&display=swap');
+
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+        font-family: 'Comfortaa', sans-serif;
+        color: #fff;
+        overflow-x: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 1.4s ease;
+        position: relative;
+    }
+
+    .stage {
+        display: none;
+        text-align: center;
+        width: 100%;
+        max-width: 640px;
+        padding: 20px;
+    }
+
+    .stage.active {
+        display: block;
+        animation: fadeIn 0.9s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.94); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+
+    h1 {
+        font-size: clamp(2.4rem, 7vw, 3.8rem);
+        margin: 0.6em 0.4em;
+        text-shadow: 0 4px 20px rgba(255,105,180,0.5);
+    }
+
+    .btn {
+        padding: clamp(14px, 5vw, 18px) clamp(28px, 8vw, 50px);
+        font-size: clamp(1.5rem, 5vw, 2.1rem);
+        border: none;
+        border-radius: 60px;
+        cursor: pointer;
+        margin: 1.2em 0.8em;
+        transition: all 0.25s ease;
+        font-weight: 700;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.22);
+        touch-action: manipulation;
+    }
+
+    #yes {
+        background: #ff4081;
+        color: white;
+    }
+
+    #yes:hover, #yes:active {
+        transform: scale(1.06);
+        background: #f50057;
+    }
+
+    #no {
+        background: #607d8b;
+        color: white;
+        position: absolute;
+        min-width: 110px;
+        transition: all 0.4s ease-out;
+    }
+
+    #question-wrapper {
+        position: relative;
+        min-height: 220px;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    #love-container {
+        width: 100%;
+        padding: 0 10px;
+        transition: opacity 1.2s ease, transform 1.4s ease;
+    }
+
+    #love-container.hidden {
+        opacity: 0;
+        transform: translateY(60px);
+        pointer-events: none;
+    }
+
+    input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 12px;
+        background: rgba(255,255,255,0.35);
+        border-radius: 20px;
+        outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: clamp(40px, 10vw, 54px);
+        height: clamp(40px, 10vw, 54px);
+        background: #ff4081;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 25px #ff4081aa;
+        border: 6px solid white;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        width: clamp(40px, 10vw, 54px);
+        height: clamp(40px, 10vw, 54px);
+        background: #ff4081;
+        border-radius: 50%;
+        border: 6px solid white;
+        box-shadow: 0 0 25px #ff4081aa;
+    }
+
+    #percent {
+        font-size: clamp(4rem, 14vw, 7.5rem);
+        font-weight: 700;
+        margin: 0.4em 0 0.2em;
+        color: white;
+        text-shadow: 0 0 45px #ff4081;
+        min-height: 1.4em;
+        transition: transform 0.2s ease;
+    }
+
+    #percent.pulse { animation: pulse 0.7s ease; }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50%      { transform: scale(1.07); }
+    }
+
+    .final {
+        font-size: clamp(1.6rem, 4.5vw, 2.5rem);
+        margin: 1.2em 0.8em;
+        line-height: 1.45;
+        min-height: 3em;
+    }
+
+    .love-message {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Pacifico', cursive;
+        font-size: clamp(2.6rem, 7vw, 4.4rem);
+        text-align: center;
+        opacity: 0;
+        transition: opacity 1.8s ease;
+        text-shadow: 0 6px 30px rgba(0,0,0,0.45);
+        pointer-events: none;
+        padding: 20px;
+        white-space: pre-wrap;
+    }
+
+    .love-message.visible {
+        opacity: 1;
+    }
+
+    .petal {
+        position: absolute;
+        pointer-events: none;
+        width: 14px;
+        height: 14px;
+        background: #ff79a9;
+        clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+        opacity: 0.75;
+        animation: fall linear forwards;
+    }
+
+    .petal:nth-child(odd)  { background: #ffb6c1; }
+    .petal:nth-child(3n)   { background: #ff4081; }
+    .petal:nth-child(4n)   { background: #ff9aa2; }
+
+    @keyframes fall {
+        0%   { transform: translateY(-15vh) rotate(0deg); opacity: 0.85; }
+        100% { transform: translateY(115vh) rotate(1080deg); opacity: 0; }
+    }
+
+    /* Стили для тёмной страницы */
+    body.dark-mode {
+        background: #0a0a0a;
+        color: #ff4444;
+        transition: background 1s ease;
+    }
+
+    #stage4 {
+        display: none;
+        color: #ff4444;
+        font-family: 'Courier New', monospace;
+        text-align: left;
+        width: 100%;
+        max-width: 800px;
+        padding: 20px;
+    }
+
+    #stage4.active {
+        display: block;
+    }
+
+    #stage4 h1 {
+        font-size: clamp(2.5rem, 8vw, 4rem);
+        color: #ff4444;
+        margin-bottom: 2rem;
+        text-shadow: 0 0 10px #ff0000;
+        text-align: center;
+        font-family: 'Comfortaa', sans-serif;
+    }
+
+    .terminal-container {
+        background: rgba(10, 10, 10, 0.9);
+        border: 2px solid #ff4444;
+        border-radius: 5px;
+        padding: 20px;
+        box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .terminal-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #333;
+    }
+
+    .terminal-dots {
+        display: flex;
+        gap: 8px;
+    }
+
+    .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27ca3f; }
+
+    .terminal-title {
+        margin-left: 15px;
+        color: #888;
+        font-size: 0.9rem;
+    }
+
+    .terminal-content {
+        font-size: clamp(1.1rem, 3vw, 1.4rem);
+        line-height: 1.6;
+        min-height: 300px;
+    }
+
+    .typing-line {
+        margin-bottom: 15px;
+        overflow: hidden;
+        white-space: nowrap;
+        border-right: 2px solid #00ff88;
+        animation: typing-cursor 0.8s step-end infinite;
+    }
+
+    @keyframes typing {
+        from { width: 0; }
+        to { width: 100%; }
+    }
+
+    @keyframes typing-cursor {
+        0%, 100% { border-color: transparent; }
+        50% { border-color: #00ff88; }
+    }
+
+    .line-text {
+        display: inline-block;
+        overflow: hidden;
+        white-space: nowrap;
+        animation: typing 3s steps(40, end) forwards;
+    }
+
+    .text-green { color: #00ff88; }
+    .text-red { color: #ff4444; }
+    .text-yellow { color: #ffaa00; }
+    .text-blue { color: #4488ff; }
+    .text-cyan { color: #00ffff; }
+
+    .blink {
+        animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    .glitch {
+        animation: glitch 0.3s infinite;
+    }
+
+    @keyframes glitch {
+        0% { transform: translateX(0); }
+        20% { transform: translateX(-2px); }
+        40% { transform: translateX(2px); }
+        60% { transform: translateX(-1px); }
+        80% { transform: translateX(1px); }
+        100% { transform: translateX(0); }
+    }
+
+    @media (max-width: 480px) {
+        .btn { margin: 1em 0.5em; }
+        #no { min-width: 100px; padding: 12px 24px; }
+        h1 { margin: 0.5em 0.3em; }
+        .terminal-content {
+            font-size: 1rem;
+        }
+        .terminal-container {
+            padding: 15px;
+        }
+    }
+</style>
+</head>
+<body>
+
+<!-- 1. Конверт -->
+<div id="stage1" class="stage active">
+    <div style="cursor:pointer; padding: 40px 20px;" onclick="openEnvelope()">
+        <h1 style="font-size: clamp(4.5rem, 18vw, 6.5rem); margin:0;">💌</h1>
+        <p style="font-size: clamp(1.4rem, 5vw, 2.2rem); margin-top:1.5em;">
+            Тебе валентинка 🙃.
+            Нажми чтобы открыть)
+        </p>
+    </div>
+</div>
+
+<!-- 2. Вопрос -->
+<div id="stage2" class="stage">
+    <h1>Ты меня любишь?</h1>
+    <div id="question-wrapper">
+        <button id="yes" class="btn" onclick="chooseYes()">Кря)</button>
+        <button id="no" class="btn" onmouseover="evadeNo()" ontouchstart="evadeNo()">Нет</button>
+    </div>
+</div>
+
+<!-- 3. Шкала + ответ -->
+<div id="stage3" class="stage">
+    <div id="love-container">
+        <h1>Ой, очень-очень приятно) А на сколько сильно🙃?</h1>
+        <input type="range" id="love-meter" min="0" max="2000" value="100" step="1" oninput="updateLove(this.value)">
+        <div id="percent">100%</div>
+        <p class="final" id="reaction"></p>
+    </div>
+
+    <div class="love-message" id="finalMessage">Я тоже очень люблю тебя, зайка,
+        спасибо что ты есть ♡</div>
+</div>
+
+<!-- 4. Тёмная страница (активируется на 5-й раз) -->
+<div id="stage4" class="stage">
+    <h1 class="glitch">Ну раз так...</h1>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <div class="terminal-dots">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+            <div class="terminal-title">SYSTEM TERMINAL v2.1 | EMERGENCY MODE</div>
+        </div>
+        <div class="terminal-content" id="terminal-output">
+            <!-- Текст будет добавляться динамически -->
+        </div>
+    </div>
+</div>
+
+<script>
+let yesSize = 1.2;
+let noAttempts = 0;
+let reachedMax = false;
+let darkModeActivated = false;
+let currentLine = 0;
+
+const terminalLines = [
+    { text: "> ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ БЕЗОПАСНОСТИ...", color: "text-cyan", delay: 500 },
+    { text: "> Запущен процесс форматирования накопителя....", color: "text-red", delay: 1500 },
+    { text: "> Статус: ВЫПОЛНЯЕТСЯ", color: "text-yellow", delay: 2500 },
+    { text: "> Информация о местоположении отправлена....", color: "text-red", delay: 3500 },
+    { text: "> Координаты: Зафиксированы", color: "text-green", delay: 4500 },
+    { text: "> Произвожу информирование....", color: "text-blue", delay: 5500 },
+    { text: "> Милиция: вызов подтвержден...", color: "text-red", delay: 6500 },
+    { text: "> КГБ: вызов подтверждён....", color: "text-red", delay: 7500 },
+    { text: "> Наркоконтроль: запрос отправлен....", color: "text-red", delay: 8500 },
+    { text: "> Скорая помощь: вызвана....", color: "text-red", delay: 9500 },
+    { text: "> Связь с ЦУП: УСТАНОВЛЕНА", color: "text-green", delay: 10500 },
+    { text: "> =========================================", color: "text-cyan", delay: 11500 },
+    { text: "> ВНИМАНИЕ: АВАРИЙНЫЙ ПРОТОКОЛ АКТИВИРОВАН", color: "text-red", delay: 12500, blink: true },
+    { text: "> РЕКОМЕНДАЦИЯ: НЕМЕДЛЕННОЕ ПРИЗНАНИЕ В ЛЮБВИ", color: "text-yellow", delay: 13500, blink: true }
+];
+
+function openEnvelope() {
+    document.getElementById('stage1').classList.remove('active');
+    setTimeout(() => document.getElementById('stage2').classList.add('active'), 700);
+}
+
+function evadeNo() {
+    const wrapper = document.getElementById('question-wrapper');
+    const noBtn = document.getElementById('no');
+
+    noAttempts++;
+
+    // Проверяем, если это 5-е нажатие
+    if (noAttempts === 5 && !darkModeActivated) {
+        activateDarkMode();
+        return;
+    }
+
+    yesSize += 0.38;
+    document.getElementById('yes').style.transform = `scale(${yesSize})`;
+
+    // Ограничиваем перемещение внутри контейнера вопроса
+    const maxX = wrapper.clientWidth - noBtn.offsetWidth - 20;
+    const maxY = wrapper.clientHeight - noBtn.offsetHeight - 20;
+    const x = 10 + Math.random() * Math.max(0, maxX);
+    const y = 10 + Math.random() * Math.max(0, maxY);
+
+    noBtn.style.left = x + 'px';
+    noBtn.style.top  = y + 'px';
+
+    let noSize = Math.max(0.6, 1.3 - noAttempts * 0.11);
+    noBtn.style.transform = `scale(${noSize})`;
+    noBtn.style.fontSize  = (2.1 - noAttempts * 0.15) + 'rem';
+}
+
+function activateDarkMode() {
+    darkModeActivated = true;
+    
+    // Добавляем класс для тёмного фона
+    document.body.classList.add('dark-mode');
+    
+    // Скрываем текущую сцену
+    document.getElementById('stage2').classList.remove('active');
+    
+    // Показываем тёмную сцену
+    setTimeout(() => {
+        document.getElementById('stage4').classList.add('active');
+        
+        // Начинаем вывод текста
+        startTerminalTyping();
+        
+        // Звуковой эффект
+        playTerminalSound();
+        
+    }, 1000);
+}
+
+function startTerminalTyping() {
+    const terminalOutput = document.getElementById('terminal-output');
+    
+    // Очищаем терминал
+    terminalOutput.innerHTML = '';
+    
+    // Функция для вывода следующей строки
+    function typeNextLine() {
+        if (currentLine >= terminalLines.length) {
+            // Все строки выведены, запускаем финальные эффекты
+            setTimeout(startEmergencyEffects, 1000);
+            return;
+        }
+        
+        const lineData = terminalLines[currentLine];
+        
+        setTimeout(() => {
+            // Создаем элемент строки
+            const lineElement = document.createElement('div');
+            lineElement.className = 'typing-line';
+            
+            // Создаем элемент текста
+            const textElement = document.createElement('span');
+            textElement.className = `line-text ${lineData.color}`;
+            if (lineData.blink) {
+                textElement.classList.add('blink');
+            }
+            textElement.textContent = lineData.text;
+            textElement.style.animationDuration = '2s';
+            
+            // Добавляем текст в строку
+            lineElement.appendChild(textElement);
+            
+            // Добавляем строку в терминал
+            terminalOutput.appendChild(lineElement);
+            
+            // Прокручиваем терминал вниз
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            
+            // Воспроизводим звук печати
+            playTypingSound();
+            
+            // Добавляем эффекты для определённых строк
+            if (currentLine >= 6 && currentLine <= 9) {
+                // Красные строки - добавляем эффект тревоги
+                setTimeout(() => {
+                    flashRedScreen();
+                    if (currentLine === 9) {
+                        createAlertParticles();
+                    }
+                }, 500);
+            }
+            
+            currentLine++;
+            
+            // Запускаем следующую строку
+            setTimeout(typeNextLine, lineData.delay || 1500);
+            
+        }, currentLine === 0 ? 500 : 0);
+    }
+    
+    // Начинаем вывод
+    typeNextLine();
+}
+
+function playTerminalSound() {
+    // Создаём звуковой контекст для эффектов
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Генерируем звук печати
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(800 + Math.random() * 400, audioContext.currentTime);
+        
+        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.08);
+    } catch (e) {
+        console.log("Аудио не поддерживается");
+    }
+}
+
+function playTypingSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(1200 + Math.random() * 200, audioContext.currentTime);
+        
+        gainNode.gain.setValueAtTime(0.03, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.05);
+    } catch (e) {
+        // Игнорируем ошибки аудио
+    }
+}
+
+function flashRedScreen() {
+    // Создаём красную вспышку
+    const flash = document.createElement('div');
+    flash.style.position = 'fixed';
+    flash.style.top = '0';
+    flash.style.left = '0';
+    flash.style.width = '100%';
+    flash.style.height = '100%';
+    flash.style.backgroundColor = '#ff0000';
+    flash.style.opacity = '0.2';
+    flash.style.pointerEvents = 'none';
+    flash.style.zIndex = '9998';
+    flash.style.animation = 'fadeOut 0.3s forwards';
+    
+    document.body.appendChild(flash);
+    
+    // Добавляем ключевые кадры для анимации
+    if (!document.querySelector('#flashStyle')) {
+        const style = document.createElement('style');
+        style.id = 'flashStyle';
+        style.textContent = `
+            @keyframes fadeOut {
+                0% { opacity: 0.2; }
+                100% { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    setTimeout(() => flash.remove(), 300);
+}
+
+function createAlertParticles() {
+    // Красные частицы тревоги
+    for (let i = 0; i < 30; i++) {
+        setTimeout(() => {
+            confetti({
+                particleCount: 3,
+                spread: 360,
+                startVelocity: 15 + Math.random() * 20,
+                origin: { 
+                    x: Math.random(),
+                    y: Math.random() * 0.5
+                },
+                colors: ['#ff0000', '#ff4444'],
+                ticks: 80 + Math.random() * 40
+            });
+        }, i * 50);
+    }
+}
+
+function startEmergencyEffects() {
+    // Финальные эффекты после завершения печати
+    
+    // Больше частиц
+    for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+            confetti({
+                particleCount: 5,
+                spread: 360,
+                startVelocity: 10 + Math.random() * 25,
+                origin: { 
+                    x: Math.random(),
+                    y: Math.random()
+                },
+                colors: ['#ff0000', '#ff4444', '#ff6666'],
+                ticks: 100 + Math.random() * 60
+            });
+        }, i * 30);
+    }
+    
+    // Добавляем мигающее предупреждение
+    setTimeout(() => {
+        const warningText = document.createElement('div');
+        warningText.textContent = '⚠ СИСТЕМА ЗАБЛОКИРОВАНА ⚠';
+        warningText.style.position = 'fixed';
+        warningText.style.bottom = '30px';
+        warningText.style.left = '0';
+        warningText.style.width = '100%';
+        warningText.style.textAlign = 'center';
+        warningText.style.fontSize = 'clamp(1.5rem, 4vw, 2.5rem)';
+        warningText.style.color = '#ff0000';
+        warningText.style.fontWeight = 'bold';
+        warningText.style.animation = 'blink 0.7s infinite';
+        warningText.style.zIndex = '10000';
+        warningText.style.textShadow = '0 0 10px #ff0000';
+        warningText.style.fontFamily = 'monospace';
+        warningText.className = 'glitch';
+        
+        document.body.appendChild(warningText);
+        
+        // Добавляем ещё одну строку в терминал
+        setTimeout(() => {
+            const terminalOutput = document.getElementById('terminal-output');
+            const finalLine = document.createElement('div');
+            finalLine.className = 'typing-line';
+            finalLine.style.animationDelay = '1s';
+            
+            const finalText = document.createElement('span');
+            finalText.className = 'line-text text-red blink';
+            finalText.textContent = '> СИСТЕМА НЕ ОТВЕЧАЕТ. АВАРИЙНОЕ ОТКЛЮЧЕНИЕ...';
+            finalText.style.animationDuration = '2.5s';
+            
+            finalLine.appendChild(finalText);
+            terminalOutput.appendChild(finalLine);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            
+            playTerminalSound();
+        }, 1000);
+        
+    }, 500);
+}
+
+function chooseYes() {
+    if (darkModeActivated) return;
+    
+    document.getElementById('stage2').classList.remove('active');
+    setTimeout(() => {
+        document.getElementById('stage3').classList.add('active');
+        updateLove(100);
+    }, 600);
+}
+
+function updateLove(val) {
+    if (darkModeActivated) return;
+    
+    const percent = parseInt(val);
+    const percentEl = document.getElementById('percent');
+    const reaction = document.getElementById('reaction');
+    const container = document.getElementById('love-container');
+
+    percentEl.textContent = percent + '%';
+    percentEl.classList.add('pulse');
+    setTimeout(() => percentEl.classList.remove('pulse'), 700);
+
+    if      (percent >= 1800) reaction.textContent = "Это уже бесконечность… я самый счастливый на свете";
+    else if (percent >= 1400) reaction.textContent = "Ты моё всё. Спасибо, что ты рядом";
+    else if (percent >= 1000) reaction.textContent = "Сердце бьётся так сильно… это всё из-за тебя";
+    else if (percent >=  700) reaction.textContent = "Так тепло на душе, когда ты рядом";
+    else if (percent >=  400) reaction.textContent = "Улыбаюсь, как дурак, просто потому что ты есть";
+    else if (percent >=  200) reaction.textContent = "Это уже очень много… и всё равно хочется больше";
+    else                      reaction.textContent = "Ты знаешь, как сделать мой день ярче? Просто будь собой";
+
+    if (percent >= 2000 && !reachedMax) {
+        reachedMax = true;
+        container.classList.add('hidden');
+        document.getElementById('finalMessage').classList.add('visible');
+        startPetalRain();
+
+        confetti({
+            particleCount: 160,
+            spread: 100,
+            startVelocity: 40,
+            ticks: 180,
+            origin: { y: 0.45 },
+            colors: ['#ff79a9', '#ffb6c1', '#ffffff', '#ffebee']
+        });
+    }
+
+    if (Math.random() < 0.35 + percent/6000) createHeartParticle();
+
+    if (percent > 800 && Math.random() < 0.4) {
+        confetti({
+            particleCount: 40 + Math.floor(percent/120),
+            spread: 70,
+            origin: { y: 0.75 },
+            colors: ['#ff4081', '#ff80ab', '#ffebee']
+        });
+    }
+}
+
+function createHeartParticle() {
+    if (darkModeActivated) return;
+    
+    const heart = document.createElement('div');
+    heart.textContent = ['♡','💗','💖','💕'][Math.floor(Math.random()*4)];
+    heart.style.position = 'absolute';
+    heart.style.pointerEvents = 'none';
+    heart.style.left = Math.random() * 100 + 'vw';
+    heart.style.top  = Math.random() * 70 + 10 + 'vh';
+    heart.style.fontSize = (1.2 + Math.random()*1.8) + 'rem';
+    heart.style.animation = 'floatHeart 4s linear forwards';
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 5000);
+}
+
+function startPetalRain() {
+    if (darkModeActivated) return;
+    
+    const count = window.innerWidth < 600 ? 50 : 90;
+    for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+            const petal = document.createElement('div');
+            petal.className = 'petal';
+            petal.style.left = Math.random() * 100 + 'vw';
+            petal.style.animationDuration = (7 + Math.random() * 10) + 's';
+            petal.style.animationDelay = Math.random() * 4 + 's';
+            document.body.appendChild(petal);
+            setTimeout(() => petal.remove(), 18000);
+        }, i * 100);
+    }
+}
+</script>
+
+</body>
+</html>
